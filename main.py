@@ -4,9 +4,12 @@ import sys
 
 import pygame
 
+# Группа спрайтов героя, необходимого для игры Kill_Garbage
 ALL_SPRITES = pygame.sprite.Group()
 
 
+# Класс, который из одной картинки делает несколько и объединяет их
+# в группу ALL_SPRITES
 class AnimatedSprite(pygame.sprite.Sprite):
     def __init__(self, sheet, columns, rows, x, y):
         super().__init__(ALL_SPRITES)
@@ -37,6 +40,7 @@ PARTS_OF_RUNNING_IMAGE_COLLECT_GARBAGE = AnimatedSprite(
     RUNNING_IMAGE_COLLECT_GARBAGE, 10, 1, 0, 220)
 
 
+# Класс, проигрывающий главное окно
 class Main_Window:
     def __init__(self):
         self.MAIN_RUNNING = True
@@ -44,6 +48,7 @@ class Main_Window:
         self.SCREEN_HEIGHT = 375
         self.SCREEN_TITLE = 'Экологичная игра'
 
+    # Метод, необходимый для вывода текста на экран
     def draw(self, inf, text_y, screen, size, color):
         pygame.font.init()
         font = pygame.font.Font(None, size)
@@ -52,6 +57,8 @@ class Main_Window:
         text_x = 313 - text_w // 2
         screen.blit(text, (text_x, text_y))
 
+    # Функция, в которой отрисовываются текст и картинка,
+    # воспроизводится музыка
     def play(self):
         pygame.init()
         pygame.display.init()
@@ -89,25 +96,11 @@ class Main_Window:
                     if event.key == pygame.K_ESCAPE:
                         self.MAIN_RUNNING = False
                         sys.exit()
-
             pygame.display.flip()
         pygame.quit()
 
 
-class Make_Sprite(pygame.sprite.Sprite):
-    def __init__(self, y, fall_surf, group):
-        pygame.sprite.Sprite.__init__(self)
-        self.image = fall_surf
-        self.rect = self.image.get_rect(center=(650, y))
-        self.add(group)
-
-    def update(self, *args):
-        if self.rect.x > 0:
-            self.rect.x -= 10
-        else:
-            self.kill()
-
-
+# Класс игры 2
 class Kill_Garbage:
     def __init__(self, ALL_SPRITES):
         pygame.init()
@@ -121,6 +114,7 @@ class Kill_Garbage:
         self.PLANT_X = 630
         self.PERSON_Y = 220
         self.BACKGROUND_X = 0
+        self.SPEED = 10
         self.IS_START = False
         self.IS_JUMP = False
         self.IS_RUN = False
@@ -129,6 +123,7 @@ class Kill_Garbage:
         self.WIN_MUSIC = pygame.mixer.Sound('music/Win_Music.mp3')
         pygame.time.set_timer(pygame.USEREVENT, 1500)
 
+    # Метод, необходимый для вывода текста на экран
     def draw(self, inf, text_y, screen, size, color):
         pygame.font.init()
         font = pygame.font.Font(None, size)
@@ -137,31 +132,20 @@ class Kill_Garbage:
         text_x = 313 - text_w // 2
         screen.blit(text, (text_x, text_y))
 
-    def collide_fall(self):
-        for i in self.ALL_PLANTS:
-            if self.STAND_IMAGE_RECT.collidepoint(i.rect.center):
-                self.RUNNING_COLLECT_GARBAGE = False
-                pygame.quit()
-                lost_collect_garbage = Lost_Kill_Garbage(
-                    self.POINTS)
-                lost_collect_garbage.play()
-        for j in self.ALL_GARBE:
-            if self.STAND_IMAGE_RECT.collidepoint(j.rect.center):
-                self.WIN_MUSIC.play()
-                self.POINTS += 1
-                j.kill()
-
+    # Метод, создающий рандомный спрайт
     def make_fall(self):
         index = random.randint(0, 1)
-        x = 270
+        x = 620
         if index == 0:
             chosen = pygame.image.load('images/plant.png')
             group = self.ALL_PLANTS
         else:
             chosen = pygame.image.load('images/garbage.png')
             group = self.ALL_GARBE
-        return Make_Sprite(x, chosen, group)
+        return Make_Sprite(x, 270, chosen, group)
 
+    # Функция, в которой отрисовываются текст и картинка,
+    # воспроизводится музыка
     def play(self):
         pygame.init()
         pygame.display.init()
@@ -179,10 +163,9 @@ class Kill_Garbage:
                                           (self.BACKGROUND_X, 0))
             self.SCREEN_KILL_GARBAGE.blit(self.BACKGROUND,
                                           (self.BACKGROUND_X + 626, 0))
-
             self.CLOCK.tick(15)
             if self.IS_START:
-                self.BACKGROUND_X -= 9
+                self.BACKGROUND_X -= self.SPEED
                 if self.BACKGROUND_X <= -626:
                     self.BACKGROUND_X = 0
                 if self.IS_RUN:
@@ -211,8 +194,12 @@ class Kill_Garbage:
                         self.HIGH_JUMP = 10
                 self.draw(f'Счёт: {self.POINTS}', 10, self.SCREEN_KILL_GARBAGE,
                           40, (118, 74, 35))
+                self.ALL_PLANTS.update(2, self.SPEED)
+                self.ALL_PLANTS.draw(self.SCREEN_KILL_GARBAGE)
+                self.ALL_GARBE.update(2, self.SPEED)
+                self.ALL_GARBE.draw(self.SCREEN_KILL_GARBAGE)
             else:
-                self.draw('Стреляй по мусору, но не наступай на растения', 310,
+                self.draw('Собирай мусор, но не наступай на растения', 310,
                           self.SCREEN_KILL_GARBAGE, 30, (255, 255, 255))
                 self.draw('Нажми B для старта', 340, self.SCREEN_KILL_GARBAGE,
                           30, (255, 255, 255))
@@ -220,10 +207,17 @@ class Kill_Garbage:
             if not self.IS_START or self.IS_JUMP:
                 self.SCREEN_KILL_GARBAGE.blit(self.STAND_IMAGE,
                                               (0, self.PERSON_Y))
-            self.ALL_PLANTS.update()
-            self.ALL_PLANTS.draw(self.SCREEN_KILL_GARBAGE)
-            self.ALL_GARBE.update()
-            self.ALL_GARBE.draw(self.SCREEN_KILL_GARBAGE)
+            if pygame.sprite.groupcollide(self.ALL_SPRITES, self.ALL_PLANTS,
+                                          False, False):
+                self.RUNNING_KILL_GARBAGE = False
+                pygame.quit()
+                lost_collect_garbage = Lost_Kill_Garbage(
+                    self.POINTS)
+                lost_collect_garbage.play()
+            if pygame.sprite.groupcollide(self.ALL_SPRITES, self.ALL_GARBE,
+                                          False, True):
+                self.WIN_MUSIC.play()
+                self.POINTS += 1
             pygame.display.update()
             pygame.display.flip()
             for event in pygame.event.get():
@@ -244,6 +238,7 @@ class Kill_Garbage:
                         self.IS_START = True
 
 
+# Класс проигрыша в игре 2
 class Lost_Kill_Garbage:
     def __init__(self, POINTS):
         pygame.init()
@@ -255,11 +250,13 @@ class Lost_Kill_Garbage:
         self.LOST_MUSIC = pygame.mixer.Sound('music/Lost_Music.mp3')
         self.con = sqlite3.connect("Project.sqlite")
         self.cur = self.con.cursor()
-        text = f"""INSERT INTO All_Results (Type_of_game, result) VALUES (2, {self.POINTS});"""
+        text = f"""INSERT INTO All_Results 
+        (Type_of_game, result) VALUES (2, {self.POINTS});"""
         count = self.cur.execute(text)
         self.con.commit()
         self.cur.close()
 
+    # Метод, необходимый для вывода текста на экран
     def draw(self, inf, text_y, screen, size, color):
         pygame.font.init()
         font = pygame.font.Font(None, size)
@@ -268,6 +265,8 @@ class Lost_Kill_Garbage:
         text_x = 313 - text_w // 2
         screen.blit(text, (text_x, text_y))
 
+    # Функция, в которой отрисовываются текст и картинка,
+    # воспроизводится музыка
     def play(self):
         pygame.init()
         pygame.display.init()
@@ -307,20 +306,28 @@ class Lost_Kill_Garbage:
                         main_window.play()
 
 
+# Класс, создающий и обновляющий спрайт
 class Make_Sprite(pygame.sprite.Sprite):
-    def __init__(self, x, fall_surf, group):
+    def __init__(self, x, y, fall_surf, group):
         pygame.sprite.Sprite.__init__(self)
         self.image = fall_surf
-        self.rect = self.image.get_rect(center=(x, 0))
+        self.rect = self.image.get_rect(center=(x, y))
         self.add(group)
 
-    def update(self, *args):
-        if self.rect.y < 375:
-            self.rect.y += 10
-        else:
-            self.kill()
+    def update(self, x, speed):
+        if x == 1:
+            if self.rect.y < 375:
+                self.rect.y += speed
+            else:
+                self.kill()
+        elif x == 2:
+            if self.rect.x > -20:
+                self.rect.x -= speed
+            else:
+                self.kill()
 
 
+# Класс игры 1
 class Collect_Garbage:
     def __init__(self):
         pygame.init()
@@ -333,9 +340,11 @@ class Collect_Garbage:
         self.ALL_GARBE = pygame.sprite.Group()
         self.IS_START = False
         self.POINTS = 0
+        self.SPEED = 10
         self.WIN_MUSIC = pygame.mixer.Sound('music/Win_Music.mp3')
         pygame.time.set_timer(pygame.USEREVENT, 500)
 
+    # Метод, необходимый для вывода текста на экран
     def draw(self, inf, text_y, screen, size, color):
         pygame.font.init()
         font = pygame.font.Font(None, size)
@@ -353,8 +362,9 @@ class Collect_Garbage:
         else:
             chosen = pygame.image.load('images/garbage.png')
             group = self.ALL_GARBE
-        return Make_Sprite(x, chosen, group)
+        return Make_Sprite(x, 0, chosen, group)
 
+    # Метод, проверяющий наличие столкновения
     def collide_fall(self):
         for i in self.ALL_PLANTS:
             if self.BIN_RECT.collidepoint(i.rect.center):
@@ -369,6 +379,8 @@ class Collect_Garbage:
                 self.POINTS += 1
                 j.kill()
 
+    # Функция, в которой отрисовываются текст и картинка,
+    # воспроизводится музыка
     def play(self):
         pygame.init()
         pygame.display.init()
@@ -400,11 +412,11 @@ class Collect_Garbage:
             if self.IS_START:
                 self.BIN_RECT.x = pos[0]
                 self.BIN_RECT.y = self.SCREEN_HEIGHT - 44
-                self.SCREEN_COLLECT_GARBAGE.blit(self.BIN, (pos[0],
-                                                            self.SCREEN_HEIGHT - 44))
-                self.ALL_PLANTS.update()
+                self.SCREEN_COLLECT_GARBAGE.blit \
+                    (self.BIN, (pos[0], self.SCREEN_HEIGHT - 44))
+                self.ALL_PLANTS.update(1, self.SPEED)
                 self.ALL_PLANTS.draw(self.SCREEN_COLLECT_GARBAGE)
-                self.ALL_GARBE.update()
+                self.ALL_GARBE.update(1, self.SPEED)
                 self.ALL_GARBE.draw(self.SCREEN_COLLECT_GARBAGE)
                 self.draw(f'Счёт: {self.POINTS}', 10,
                           self.SCREEN_COLLECT_GARBAGE,
@@ -433,6 +445,7 @@ class Collect_Garbage:
                         lost_collect_garbage.play()
 
 
+# Класс проигрыша в игре 1
 class Lost_Collect_Garbage:
     def __init__(self, POINTS):
         pygame.init()
@@ -449,6 +462,7 @@ class Lost_Collect_Garbage:
         self.con.commit()
         self.cur.close()
 
+    # Метод, необходимый для вывода текста на экран
     def draw(self, inf, text_y, screen, size, color):
         pygame.font.init()
         font = pygame.font.Font(None, size)
@@ -457,6 +471,8 @@ class Lost_Collect_Garbage:
         text_x = 313 - text_w // 2
         screen.blit(text, (text_x, text_y))
 
+    # Функция, в которой отрисовываются текст и картинка,
+    # воспроизводится музыка
     def play(self):
         pygame.init()
         pygame.display.init()
@@ -496,6 +512,7 @@ class Lost_Collect_Garbage:
                         main_window.play()
 
 
+# Запуск главного окна
 if __name__ == '__main__':
     main_window = Main_Window()
     main_window.play()

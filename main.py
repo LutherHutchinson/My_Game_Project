@@ -1,3 +1,4 @@
+# Импорт необходимых библиотек
 import random
 import sqlite3
 import sys
@@ -10,6 +11,7 @@ ALL_SPRITES = pygame.sprite.Group()
 
 # Класс, который из одной картинки делает несколько и объединяет их
 # в группу ALL_SPRITES
+# Данный класс был взят из урока "PyGame 8. Украшения игры"
 class AnimatedSprite(pygame.sprite.Sprite):
     def __init__(self, sheet, columns, rows, x, y):
         super().__init__(ALL_SPRITES)
@@ -47,6 +49,16 @@ class Main_Window:
         self.SCREEN_WIDTH = 626
         self.SCREEN_HEIGHT = 375
         self.SCREEN_TITLE = 'Экологичная игра'
+        self.con = sqlite3.connect('My_DB.sqlite3')
+        self.cur = self.con.cursor()
+        self.best_1 = self.cur.execute("""SELECT MAX(result) FROM All_Results WHERE Type_Of_Game = 1""").fetchall()
+        for i in self.best_1:
+            for k in i:
+                self.v_1 = k
+        self.best_2 = self.cur.execute("""SELECT MAX(result) FROM All_Results WHERE Type_Of_Game = 2""").fetchall()
+        for j in self.best_2:
+            for p in j:
+                self.v_2 = p
 
     # Метод, необходимый для вывода текста на экран
     def draw(self, inf, text_y, screen, size, color):
@@ -73,6 +85,8 @@ class Main_Window:
             self.MAIN_SCREEN.fill((56, 159, 228))
             self.draw('Добро пожаловать в игру!', 100, self.MAIN_SCREEN, 60,
                       (255, 255, 255))
+            self.draw(f'Игра 1: {self.v_1}    Игра 2: {self.v_2}', 50,
+                      self.MAIN_SCREEN, 40, (255, 255, 255))
             self.draw('Чтобы играть в мини-игру 1, нажми 1', 160,
                       self.MAIN_SCREEN,
                       40, (255, 255, 255))
@@ -248,13 +262,11 @@ class Lost_Kill_Garbage:
         self.SCREEN_HEIGHT = 375
         self.SCREEN_TITLE_LOST_KILL_GARBAGE = 'Выстрел в мусор'
         self.LOST_MUSIC = pygame.mixer.Sound('music/Lost_Music.mp3')
-        self.con = sqlite3.connect("Project.sqlite")
+        self.con = sqlite3.connect("My_DB.sqlite3")
         self.cur = self.con.cursor()
-        text = f"""INSERT INTO All_Results 
-        (Type_of_game, result) VALUES (2, {self.POINTS});"""
-        count = self.cur.execute(text)
+        self.cur.execute('INSERT INTO All_Results(Type_Of_Game, result) '
+                         'VALUES (?, ?)', (2, self.POINTS))
         self.con.commit()
-        self.cur.close()
 
     # Метод, необходимый для вывода текста на экран
     def draw(self, inf, text_y, screen, size, color):
@@ -353,6 +365,7 @@ class Collect_Garbage:
         text_x = 313 - text_w // 2
         screen.blit(text, (text_x, text_y))
 
+    # Метод, создающий рандомный спрайт
     def make_fall(self):
         index = random.randint(0, 1)
         x = random.randint(45, 585)
@@ -455,12 +468,11 @@ class Lost_Collect_Garbage:
         self.SCREEN_HEIGHT = 375
         self.SCREEN_TITLE_LOST_COLLECT_GARBAGE = 'Сбор мусора'
         self.LOST_MUSIC = pygame.mixer.Sound('music/Lost_Music.mp3')
-        self.con = sqlite3.connect("Project.sqlite")
+        self.con = sqlite3.connect("My_DB.sqlite3")
         self.cur = self.con.cursor()
-        text = f"""INSERT INTO All_Results VALUES (1, {self.POINTS});"""
-        count = self.cur.execute(text).fetchall()
+        self.cur.execute('INSERT INTO All_Results(Type_Of_Game, result) '
+                         'VALUES (?, ?)', (1, self.POINTS))
         self.con.commit()
-        self.cur.close()
 
     # Метод, необходимый для вывода текста на экран
     def draw(self, inf, text_y, screen, size, color):

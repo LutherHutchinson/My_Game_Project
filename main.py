@@ -8,7 +8,6 @@ import pygame
 # Группа спрайтов героя, необходимого для игры Kill_Garbage
 ALL_SPRITES = pygame.sprite.Group()
 
-
 # Класс, который из одной картинки делает несколько и объединяет их
 # в группу ALL_SPRITES
 # Данный класс был взят из урока "PyGame 8. Украшения игры"
@@ -51,11 +50,13 @@ class Main_Window:
         self.SCREEN_TITLE = 'Экологичная игра'
         self.con = sqlite3.connect('My_DB.sqlite3')
         self.cur = self.con.cursor()
-        self.best_1 = self.cur.execute("""SELECT MAX(result) FROM All_Results WHERE Type_Of_Game = 1""").fetchall()
+        self.best_1 = self.cur.execute(
+            """SELECT MAX(result) FROM All_Results WHERE Type_Of_Game = 1""").fetchall()
         for i in self.best_1:
             for k in i:
                 self.v_1 = k
-        self.best_2 = self.cur.execute("""SELECT MAX(result) FROM All_Results WHERE Type_Of_Game = 2""").fetchall()
+        self.best_2 = self.cur.execute(
+            """SELECT MAX(result) FROM All_Results WHERE Type_Of_Game = 2""").fetchall()
         for j in self.best_2:
             for p in j:
                 self.v_2 = p
@@ -170,6 +171,9 @@ class Kill_Garbage:
         self.STAND_IMAGE = pygame.image.load(
             'images/john_stand_looking_up.png').convert_alpha()
         self.STAND_IMAGE = pygame.transform.scale(self.STAND_IMAGE, (78, 66))
+        self.sprite = pygame.sprite.Sprite()
+        self.sprite.image = self.STAND_IMAGE
+        self.sprite.rect = self.sprite.image.get_rect()
         self.STAND_IMAGE_RECT = self.STAND_IMAGE.get_rect()
         self.CLOCK = pygame.time.Clock()
         while self.RUNNING_KILL_GARBAGE:
@@ -195,11 +199,11 @@ class Kill_Garbage:
                 else:
                     if self.HIGH_JUMP >= -10:
                         if self.HIGH_JUMP > 0:
-                            self.STAND_IMAGE_RECT.y -= self.HIGH_JUMP ** 2 / 3
+                            self.sprite.rect.y -= self.HIGH_JUMP ** 2 / 3
                             self.PERSON_Y -= self.HIGH_JUMP ** 2 / 3
                             print('+')
                         else:
-                            self.STAND_IMAGE_RECT.y += self.HIGH_JUMP ** 2 / 3
+                            self.sprite.rect.y += self.HIGH_JUMP ** 2 / 3
                             self.PERSON_Y += self.HIGH_JUMP ** 2 / 3
                             print('-')
                         self.HIGH_JUMP -= 1
@@ -212,6 +216,26 @@ class Kill_Garbage:
                 self.ALL_PLANTS.draw(self.SCREEN_KILL_GARBAGE)
                 self.ALL_GARBE.update(2, self.SPEED)
                 self.ALL_GARBE.draw(self.SCREEN_KILL_GARBAGE)
+                if not self.IS_JUMP:
+                    if pygame.sprite.groupcollide(self.ALL_SPRITES, self.ALL_PLANTS, False, True):
+                        self.RUNNING_KILL_GARBAGE = False
+                        pygame.quit()
+                        lost_collect_garbage = Lost_Kill_Garbage(
+                            self.POINTS)
+                        lost_collect_garbage.play()
+                    if pygame.sprite.groupcollide(self.ALL_SPRITES, self.ALL_GARBE, False, True):
+                        self.WIN_MUSIC.play()
+                        self.POINTS += 1
+                else:
+                    if pygame.sprite.spritecollideany(self.sprite, self.ALL_PLANTS):
+                        self.RUNNING_KILL_GARBAGE = False
+                        pygame.quit()
+                        lost_collect_garbage = Lost_Kill_Garbage(
+                            self.POINTS)
+                        lost_collect_garbage.play()
+                    if pygame.sprite.spritecollideany(self.sprite, self.ALL_GARBE):
+                        self.WIN_MUSIC.play()
+                        self.POINTS += 1
             else:
                 self.draw('Собирай мусор, но не наступай на растения', 310,
                           self.SCREEN_KILL_GARBAGE, 30, (255, 255, 255))
@@ -221,17 +245,6 @@ class Kill_Garbage:
             if not self.IS_START or self.IS_JUMP:
                 self.SCREEN_KILL_GARBAGE.blit(self.STAND_IMAGE,
                                               (0, self.PERSON_Y))
-            if pygame.sprite.groupcollide(self.ALL_SPRITES, self.ALL_PLANTS,
-                                          False, False):
-                self.RUNNING_KILL_GARBAGE = False
-                pygame.quit()
-                lost_collect_garbage = Lost_Kill_Garbage(
-                    self.POINTS)
-                lost_collect_garbage.play()
-            if pygame.sprite.groupcollide(self.ALL_SPRITES, self.ALL_GARBE,
-                                          False, True):
-                self.WIN_MUSIC.play()
-                self.POINTS += 1
             pygame.display.update()
             pygame.display.flip()
             for event in pygame.event.get():
